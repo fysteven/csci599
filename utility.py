@@ -48,6 +48,29 @@ def read_original_json(path_to_file):
     return
 
 
+def generate_own_json(path_to_file):
+    with open(path_to_file) as file1:
+        data = {}
+        files = {}
+        folder = {}
+        i = 0
+        for line in file1:
+            if i == 0:
+                data['total_count'] = line.split()[0]
+            else:
+                # line = file1[i]
+                words = line.split('.')
+                if len(words) == 2:
+                    key = line.split('\n')[0]
+                    files[key] = {'key': words[0].replace('/', '_')}
+            i += 1
+        data['files'] = files
+        folder[file1.name.split('.')[0]] = data
+        json_data = json.dumps(folder, indent=4)
+        print(json_data)
+        return
+
+
 def main():
     if len(sys.argv) == 1:
         program = 'python '
@@ -55,12 +78,15 @@ def main():
         print('how to use this program?')
         print(program + current_script + ' print path_to_directory')
         print(program + current_script + ' load_json path_to_json')
+        print(program + current_script + ' generate_json path_to_json')
     elif len(sys.argv) == 3:
         if sys.argv[1] == 'print':
             # print_all_files('/Users/Frank/windows10/awang-acadis-1')
             print_all_files(sys.argv[2])
         elif sys.argv[1] == 'load_json':
             read_original_json(sys.argv[2])
+        elif sys.argv[1] == 'generate_json':
+            generate_own_json(sys.argv[2])
 
 
 if __name__ == '__main__':
