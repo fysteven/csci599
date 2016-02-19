@@ -57,5 +57,5 @@ if __name__ == '__main__':
 
 with open('1409782224000.1') as file2:
     data = cbor.load(file2)
-    json = json.loads(data)
-    print(json['response']['body'])
+    json_data = json.loads(data)
+    print(json_data['response']['headers'][1][1])
