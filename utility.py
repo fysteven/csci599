@@ -30,6 +30,8 @@ def generate_move_commands(base_directory):
     files = get_all_files_in_directory(base_directory)
     result = []
     for filename in files:
+        if filename == '.DS_Store':
+            continue
         temp = []
         temp.append('mv \"')
         temp.append(filename)
