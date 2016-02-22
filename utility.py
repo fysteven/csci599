@@ -29,6 +29,9 @@ def get_all_files_in_directory(directory):
 def generate_move_commands(base_directory):
     files = get_all_files_in_directory(base_directory)
     result = []
+    output_folder_name = 'generated_files'
+    result.append('mkdir ' + base_directory + '/' + output_folder_name)
+    print(''.join(result[0]))
     for filename in files:
         if filename == '.DS_Store':
             continue
@@ -37,6 +40,8 @@ def generate_move_commands(base_directory):
         temp.append(filename)
         temp.append('\" ')
         temp.append(base_directory)
+        temp.append('/')
+        temp.append(output_folder_name)
         temp.append('/')
         result.append(''.join(temp))
         print(''.join(temp))
