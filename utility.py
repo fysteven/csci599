@@ -26,6 +26,22 @@ def get_all_files_in_directory(directory):
     return files2
 
 
+def generate_move_commands(base_directory):
+    files = get_all_files_in_directory(base_directory)
+    result = []
+    for filename in files:
+        temp = []
+        temp.append('mv \"')
+        temp.append(filename)
+        temp.append('\" ')
+        temp.append(base_directory)
+        temp.append('/')
+        result.append(''.join(temp))
+        print(''.join(temp))
+    # print(result)
+    return
+
+
 def print_all_files(directory):
     files = get_all_files_in_directory(directory)
     print(len(files))
@@ -75,13 +91,21 @@ def generate_own_json(path_to_file):
 def get_content_type(directory):
     files = get_all_files_in_directory(directory)
     hasp_map = {}
+    errors = []
     for item in files:
         with open(item) as file2:
-            data = cbor.load(file2)
-            json_data = json.loads(data)
-            content_type_array = json_data['response']['headers'][1]
-            hasp_map[json_data['key']] = {content_type_array[0]: content_type_array[1]}
+            try:
+                data = cbor.load(file2)
+                json_data = json.loads(data)
+                content_type_array = json_data['response']['headers'][1]
+                hasp_map[json_data['key']] = {content_type_array[0]: content_type_array[1]}
+            except Exception as e:
+                errors.append(e.message)
     result = json.dumps(hasp_map, indent=4)
+    with open(directory.split('/')[-1] + '.dump', 'w') as dumpfile:
+        for item in errors:
+            dumpfile.write(item)
+            dumpfile.write('\n')
     return result
 
 
@@ -126,6 +150,7 @@ def main():
         print(program + current_script + ' generate_json path_to_json')
         print(program + current_script + ' get_content_type path_to_directory')
         print(program + current_script + ' merge_type_and_key file1 file2')
+        print(program + current_script + ' generate_mv_commands path_to_directory')
     elif len(sys.argv) == 3:
         if sys.argv[1] == 'print':
             # print_all_files('/Users/Frank/windows10/awang-acadis-1')
@@ -136,6 +161,8 @@ def main():
             generate_own_json(sys.argv[2])
         elif sys.argv[1] == 'get_content_type':
             print_content_type(sys.argv[2])
+        elif sys.argv[1] == 'generate_mv_commands':
+            generate_move_commands(sys.argv[2])
     elif len(sys.argv) == 4:
         if sys.argv[1] == 'merge_type_and_key':
             merge_type_and_key(sys.argv[2], sys.argv[3])
