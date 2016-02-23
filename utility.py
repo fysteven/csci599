@@ -147,6 +147,25 @@ def merge_type_and_key(content_type_file_name, key_file_name):
             print(result)
 
 
+def generate_index_for_folder(path_to_folder):
+    data = {}
+    all_files = get_all_files_in_directory(path_to_folder)
+    for item in all_files:
+        parent_dir = os.path.dirname(item)
+        current_filename = item.split('/')[-1]
+        parent_dir_name = parent_dir.split('/')[-1]
+        real_type = parent_dir_name
+        if real_type in data:
+            data[real_type]['count'] += 1
+            data[real_type]['files'][current_filename] = '1'
+        else:
+            data[real_type] = dict()
+            data[real_type]['count'] = 1
+            data[real_type]['files'] = {current_filename: '1'}
+    result = json.dumps(data, indent=4)
+    print(result)
+
+
 def main():
     if len(sys.argv) == 1:
         program = 'python '
@@ -158,6 +177,7 @@ def main():
         print(program + current_script + ' get_content_type path_to_directory')
         print(program + current_script + ' merge_type_and_key file1 file2')
         print(program + current_script + ' generate_mv_commands path_to_directory')
+        print(program + current_script + ' generate_index_for_folder path_to_dir')
     elif len(sys.argv) == 3:
         if sys.argv[1] == 'print':
             # print_all_files('/Users/Frank/windows10/awang-acadis-1')
@@ -170,9 +190,12 @@ def main():
             print_content_type(sys.argv[2])
         elif sys.argv[1] == 'generate_mv_commands':
             generate_move_commands(sys.argv[2])
+        elif sys.argv[1] == 'generate_index_for_folder':
+            generate_index_for_folder(sys.argv[2])
     elif len(sys.argv) == 4:
         if sys.argv[1] == 'merge_type_and_key':
             merge_type_and_key(sys.argv[2], sys.argv[3])
 
 if __name__ == '__main__':
     main()
+
