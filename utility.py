@@ -166,6 +166,28 @@ def generate_index_for_folder(path_to_folder):
     print(result)
 
 
+def merge_our_json(jsons):
+    data = {}
+    file_data = []
+    for item in jsons:
+        with open(item) as file1:
+            file_data.append(json.load(file1))
+
+    for json_object in file_data:
+        for real_type in json_object.keys():
+            if real_type not in data:
+                data[real_type] = dict()
+                data[real_type]['count'] = 0
+                data[real_type]['files'] = dict()
+            for file_hash_id in json_object[real_type]['files'].keys():
+                if file_hash_id not in data[real_type]['files']:
+                    data[real_type]['files'][file_hash_id] = '1'
+                    data[real_type]['count'] += 1
+
+    result = json.dumps(data, indent=4, sort_keys=True)
+    print(result)
+
+
 def main():
     if len(sys.argv) == 1:
         program = 'python '
@@ -178,6 +200,7 @@ def main():
         print(program + current_script + ' merge_type_and_key file1 file2')
         print(program + current_script + ' generate_mv_commands path_to_directory')
         print(program + current_script + ' generate_index_for_folder path_to_dir')
+        print(program + current_script + ' merge_jsons json1 json2 json3 ...')
     elif len(sys.argv) == 3:
         if sys.argv[1] == 'print':
             # print_all_files('/Users/Frank/windows10/awang-acadis-1')
@@ -195,6 +218,9 @@ def main():
     elif len(sys.argv) == 4:
         if sys.argv[1] == 'merge_type_and_key':
             merge_type_and_key(sys.argv[2], sys.argv[3])
+    if len(sys.argv) > 2:
+        if sys.argv[1] == 'merge_jsons':
+            merge_our_json(sys.argv[2:len(sys.argv)])
 
 if __name__ == '__main__':
     main()
