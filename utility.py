@@ -1,7 +1,11 @@
 import os
 import sys
 import json
-import cbor
+try:
+    import cbor
+except ImportError, e:
+    pass
+
 # from os.path import isfile, join
 
 __author__ = 'Frank'
@@ -34,6 +38,7 @@ def generate_move_commands(base_directory):
     print(''.join(result[0]))
     for filename in files:
         if filename == '.DS_Store':
+            print('ds')
             continue
         temp = []
         temp.append('mv \"')
@@ -181,11 +186,21 @@ def merge_our_json(jsons):
                 data[real_type]['files'] = dict()
             for file_hash_id in json_object[real_type]['files'].keys():
                 if file_hash_id not in data[real_type]['files']:
-                    data[real_type]['files'][file_hash_id] = '1'
+                    # data[real_type]['files'][file_hash_id] = '1'
                     data[real_type]['count'] += 1
 
     result = json.dumps(data, indent=4, sort_keys=True)
     print(result)
+
+
+def count_files(path_to_file):
+    count = 0
+    with open(path_to_file) as file1:
+        json_data = json.load(file1)
+        for key in json_data.keys():
+            count += int(json_data[key]['count'])
+    print(count)
+    return count
 
 
 def main():
@@ -201,6 +216,7 @@ def main():
         print(program + current_script + ' generate_mv_commands path_to_directory')
         print(program + current_script + ' generate_index_for_folder path_to_dir')
         print(program + current_script + ' merge_jsons json1 json2 json3 ...')
+        print(program + current_script + ' count_files json_file')
     elif len(sys.argv) == 3:
         if sys.argv[1] == 'print':
             # print_all_files('/Users/Frank/windows10/awang-acadis-1')
@@ -215,6 +231,8 @@ def main():
             generate_move_commands(sys.argv[2])
         elif sys.argv[1] == 'generate_index_for_folder':
             generate_index_for_folder(sys.argv[2])
+        elif sys.argv[1] == 'count_files':
+            count_files(sys.argv[2])
     elif len(sys.argv) == 4:
         if sys.argv[1] == 'merge_type_and_key':
             merge_type_and_key(sys.argv[2], sys.argv[3])
