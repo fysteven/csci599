@@ -1,6 +1,10 @@
 import json
+import utility
 from pprint import pprint
-import cbor
+try:
+    import cbor
+except ImportError as e:
+    pass
 import sys
 
 __author__ = 'Frank'
@@ -28,7 +32,7 @@ def read_file2(filename, fingerprints_data):
         return result
 
 
-def function1(filenames, bucket_name):
+def function1(filenames, bucket_name, output_result=True):
     """
 
     :param filenames: relative paths to file
@@ -42,21 +46,19 @@ def function1(filenames, bucket_name):
             fingerprints_data = json.load(fingerprints_file)
         except Exception as e:
             # print(e)
-            error_message = []
-            error_message.append(fingerprints_filename)
-            error_message.append(' ')
-            error_message.append(e.message)
+            error_message = [fingerprints_filename, ' ', e.message]
             sys.stderr.write(''.join(error_message))
             sys.stderr.write('\n')
         for filename in filenames:
             if filename not in fingerprints_data:
                 read_file2(filename, fingerprints_data)
 
-        result = json.dumps(fingerprints_data)
-        print(result)
+        if output_result:
+            result = json.dumps(fingerprints_data)
+            print(result)
         # fingerprints_file.write(result)
         # fingerprints_file.close()
-    return
+    return fingerprints_data
 
 
 def read_from_type_files(filename):
@@ -111,16 +113,47 @@ def bfd_correlation_from_file(path_to_file):
     return letters
 
 
+def run_cross_correlation(folder_to_work_on):
+    files = utility.get_all_files_in_directory(folder_to_work_on)
+    folder_name = folder_to_work_on.split('/')[-1]
+
+    # fingerprints are of all the files in the folder
+    fingerprints_data = function1(files, folder_name, output_result=False)
+
+    iteration = 0
+    matrix = [[0 for _ in range(0, 256)] for _ in range(0, 256)]
+
+    for byte_frequency_distribution in fingerprints_data.keys():
+        bfd_fingerprint = fingerprints_data[byte_frequency_distribution]
+
+        for i in range(1, 256):
+            for j in range(0, i):
+                difference = bfd_fingerprint[i] - bfd_fingerprint[j]
+                matrix[i][j] = (matrix[i][j] * iteration + difference) / (iteration + 1)
+
+    data = {'byte_frequency_cross_correlation': matrix, 'type': folder_name, 'files_processed': len(fingerprints_data)}
+    print(json.dumps(data, indent=4))
+
+    return
+
+
+def correlation_strength(input_value):
+    return 1 - abs(input_value)
+
+
 def main():
-    read_file('./new/1409782224000.1')
+    # read_file('./new/1409782224000.1')
     if len(sys.argv) == 1:
         program = 'python '
         current_script = sys.argv[0]
         print('how to use this program?')
         print(program + current_script + ' run_bfc path_to_type-files_file')
+        print(program + current_script + ' run_cross_correlation folder_of_files')
     elif len(sys.argv) == 3:
         if sys.argv[1] == 'run_bfc':
             read_from_type_files(sys.argv[2])
+        elif sys.argv[1] == 'run_cross_correlation':
+            run_cross_correlation(sys.argv[2])
     return
 
 
@@ -131,3 +164,4 @@ if __name__ == '__main__':
  #   data = cbor.load(file2)
   #  json_data = json.loads(data)
    # print(json_data['response']['headers'][1][1])
+
