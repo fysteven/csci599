@@ -1,5 +1,7 @@
 import json
 import utility
+import datetime
+import os
 from pprint import pprint
 try:
     import cbor
@@ -32,6 +34,16 @@ def read_file2(filename, fingerprints_data):
         return result
 
 
+def read_file3(filename, fingerprints_data):
+    with open(filename) as input_file:
+        data = input_file.read()
+        result = ''
+        if len(data) != 0:
+            result = bfd(data)
+            fingerprints_data[filename] = result['normalized']
+        return result
+
+
 def function1(filenames, bucket_name, output_result=True):
     """
 
@@ -58,6 +70,37 @@ def function1(filenames, bucket_name, output_result=True):
             print(result)
         # fingerprints_file.write(result)
         # fingerprints_file.close()
+    return fingerprints_data
+
+
+def function2(filenames, bucket_name, output_result=True):
+    """
+
+    :param filenames: relative paths to file
+    :param bucket_name:
+    :return:
+    """
+    fingerprints_filename = bucket_name + '.fingerprints'
+
+    fingerprints_data = {}
+    try:
+        with open(fingerprints_filename, 'rw') as fingerprints_file:
+            fingerprints_data = json.load(fingerprints_file)
+    except Exception as e:
+            # print(e)
+        error_message = [fingerprints_filename, ' ', e.message]
+        sys.stderr.write(''.join(error_message))
+        sys.stderr.write('\n')
+        for filename in filenames:
+            if filename not in fingerprints_data:
+                read_file3(filename, fingerprints_data)
+
+        if output_result:
+            result = json.dumps(fingerprints_data)
+            print(result)
+        # fingerprints_file.write(result)
+        # fingerprints_file.close()
+
     return fingerprints_data
 
 
@@ -118,7 +161,7 @@ def run_cross_correlation(folder_to_work_on):
     folder_name = folder_to_work_on.split('/')[-1]
 
     # fingerprints are of all the files in the folder
-    fingerprints_data = function1(files, folder_name, output_result=False)
+    fingerprints_data = function2(files, folder_name, output_result=False)
 
     iteration = 0
     matrix = [[0 for _ in range(0, 256)] for _ in range(0, 256)]
@@ -153,7 +196,12 @@ def main():
         if sys.argv[1] == 'run_bfc':
             read_from_type_files(sys.argv[2])
         elif sys.argv[1] == 'run_cross_correlation':
+            start_time = datetime.datetime.now()
+            print(start_time)
             run_cross_correlation(sys.argv[2])
+            end_time = datetime.datetime.now()
+            print(end_time)
+            print(end_time - start_time)
     return
 
 
