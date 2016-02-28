@@ -156,15 +156,24 @@ def bfd_correlation_from_file(path_to_file):
     return letters
 
 
-def run_cross_correlation(folder_to_work_on):
-    files = utility.get_all_files_in_directory(folder_to_work_on)
-    folder_name = folder_to_work_on.split('/')[-1]
+def run_cross_correlation(folder_to_work_on, output=True):
+    start_time = datetime.datetime.now()
 
+    files = utility.get_all_files_in_directory(folder_to_work_on)
+
+    folder_path = os.path.dirname(folder_to_work_on)
+
+    # folder_name = folder_path.split('/')[-1] if folder_path[-1] == '/' else folder_path.split('/')[-1]
+
+    folder_name = os.path.join(folder_to_work_on, '').split('/')[-2]
     # fingerprints are of all the files in the folder
     fingerprints_data = function2(files, folder_name, output_result=False)
 
     iteration = 0
     matrix = [[0 for _ in range(0, 256)] for _ in range(0, 256)]
+    for j in range(1, 256):
+        for i in range(0, j):
+            matrix[i][j] = 1
 
     for byte_frequency_distribution in fingerprints_data.keys():
         bfd_fingerprint = fingerprints_data[byte_frequency_distribution]
@@ -173,15 +182,49 @@ def run_cross_correlation(folder_to_work_on):
             for j in range(0, i):
                 difference = bfd_fingerprint[i] - bfd_fingerprint[j]
                 matrix[i][j] = (matrix[i][j] * iteration + difference) / (iteration + 1)
+        for j in range(1, 256):
+            for i in range(0, j):
+                overall_diff = abs(matrix[i][j] - abs(bfd_fingerprint[i] - bfd_fingerprint[j]))
+                matrix[i][j] = (matrix[i][j] * iteration + correlation_strength(overall_diff)) / (iteration + 1)
+        iteration += 1
 
-    data = {'byte_frequency_cross_correlation': matrix, 'type': folder_name, 'files_processed': len(fingerprints_data)}
-    print(json.dumps(data, indent=4))
+    end_time = datetime.datetime.now()
+
+    data = {'byte_frequency_cross_correlation': matrix, 'type': folder_name, 'files_processed': len(fingerprints_data)
+            , 'computational_time': str(end_time - start_time)}
+    if output:
+        json_data = json.dumps(data, indent=4)
+        print(json_data)
+    # print(matrix)
+    return data
+
+
+def correlation_strength(input_value, linear=True):
+    if linear:
+        return 1 - abs(input_value)
+    else:
+        # to do
+        return 1 - abs(input_value)
+
+
+def run_cross_correlation_overall(overall_folder):
+    # dirs = [d for d in os.listdir(overall_folder) if os.path.isdir(os.path.join(overall_folder, d))]
+
+    dirs = []
+    for dir1 in os.listdir(overall_folder):
+        path = os.path.join(overall_folder, dir1)
+        if os.path.isdir(path):
+            dirs.append(path + '/')
+            print(path)
+
+    for dir1 in dirs:
+        data = run_cross_correlation(dir1, output=False)
+        json_data = json.dumps(data, indent=4)
+        filename = ''.join([os.path.join(overall_folder, ''), '/', data['type'], '.json'])
+        file_to_write = open(filename, 'w')
+        file_to_write.write(json_data)
 
     return
-
-
-def correlation_strength(input_value):
-    return 1 - abs(input_value)
 
 
 def main():
@@ -192,16 +235,16 @@ def main():
         print('how to use this program?')
         print(program + current_script + ' run_bfc path_to_type-files_file')
         print(program + current_script + ' run_cross_correlation folder_of_files')
+        print(program + current_script + ' run_cross_correlation_overall folder_of_files')
+
     elif len(sys.argv) == 3:
         if sys.argv[1] == 'run_bfc':
             read_from_type_files(sys.argv[2])
         elif sys.argv[1] == 'run_cross_correlation':
-            start_time = datetime.datetime.now()
-            print(start_time)
             run_cross_correlation(sys.argv[2])
-            end_time = datetime.datetime.now()
-            print(end_time)
-            print(end_time - start_time)
+        elif sys.argv[1] == 'run_cross_correlation_overall':
+            run_cross_correlation_overall(sys.argv[2])
+
     return
 
 
