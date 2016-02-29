@@ -14,6 +14,7 @@
 
       var svg = d3.select("body")
       .append("svg")
+      .attr("id", "mySvg")
       .attr("height", h)
       .attr("width", w);
 
@@ -156,6 +157,11 @@
     //d3.json("image_gif.json", draw);
 
     function selectChanged() {
+      var svg = document.getElementById("mySvg");
+      //console.log(svg);
+      if (svg != null) {
+        svg.parentNode.removeChild(svg);
+      }
       var x = document.getElementById("selectElementId").value;
       if (x != "") {
         d3.json("./output/25/" + x, draw);
