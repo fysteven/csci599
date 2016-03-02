@@ -6,6 +6,8 @@ import json
 
 __author__ = 'Frank'
 
+PRIORITY_PLACEHOLDER = 50
+
 
 def move_files(source_folder, destination_folder):
     files = utility.get_all_files_in_directory(source_folder)
@@ -86,7 +88,7 @@ def generate_mimetypes_xml_snippets(json_filename):
                         output_result.append('\"/>\n')
 
                 for value in intermediate_for_type.keys():
-                    output_result.append('<magic priority=\"__PRIORITY_PLACEHOLDER__*{0}\">\n'.format(value))
+                    output_result.append('<magic priority=\"{0}\">\n'.format(int(value * PRIORITY_PLACEHOLDER)))
                     # output_result.extend(intermediate_for_type[value])
                     byte_objects = []
                     for byte_object in intermediate_for_type[value]:
@@ -97,23 +99,43 @@ def generate_mimetypes_xml_snippets(json_filename):
                             if previous['x'] + 1 != byte_object['x']:
                                 string_list = []
                                 for item in byte_objects:
-                                    string_list.append('\\')
-                                    string_list.append(str(item['y']))
+                                    byte_number = item['y']
+                                    if byte_number >= 65 and byte_number <= 90\
+                                            or byte_number >= 97 and byte_number <= 122:
+                                        string_list.append(chr(byte_number))
+                                    else:
+                                        # string_list.append('\\')
+                                        sys.stderr.write(repr(chr(byte_number)))
+                                        sys.stderr.write('\n')
+                                        string_list.append('\\x' + chr(byte_number).encode('hex'))
+
+                                temp_string = ''.join(string_list)
                                 output_result.append('    <match value=\"{0}\" type=\"string\" offset=\"{1}\"/>\n'
-                                                     .format(''.join(string_list), byte_objects[0]['x']))
+                                                     .format(temp_string, byte_objects[0]['x']))
                                 byte_objects = []
                             byte_objects.append(byte_object)
 
                     string_list2 = []
                     for item in byte_objects:
-                        string_list2.append('\\')
-                        string_list2.append(str(item['y']))
+                        byte_number = item['y']
+                        if byte_number >= 65 and byte_number <= 90\
+                                            or byte_number >= 97 and byte_number <= 122:
+                            string_list2.append(chr(byte_number))
+                        else:
+                            # string_list2.append('\\')
+                            string_list2.append('\\x' + chr(byte_number).encode('hex'))
+                    temp_string = ''.join(string_list2)
                     output_result.append('    <match value=\"{0}\" type=\"string\" offset=\"{1}\"/>\n'
-                                                     .format(''.join(string_list2), byte_objects[0]['x']))
+                                                     .format(temp_string, byte_objects[0]['x']))
                     output_result.append('</magic>\n')
             output_result.append('\n\n')
     # json_result = json.dumps(output_result, indent=4)
-    print(''.join(output_result))
+    final_string = ''.join(output_result)#.encode('utf-8')
+
+    # post processing
+    final_string_list = []
+
+    print(final_string)
 
     return
 
