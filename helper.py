@@ -140,6 +140,27 @@ def generate_mimetypes_xml_snippets(json_filename):
     return
 
 
+def generate_final_count_json(filepath):
+    with open(filepath) as file1:
+        json_data = json.load(file1)
+        new_json = json_data['new']
+        old_json = json_data['old']
+        result_old = []
+        result_new = []
+        for type1 in new_json.keys():
+            temp = {'mimeType': type1, 'count': new_json[type1]}
+            result_new.append(temp)
+
+        for type2 in old_json.keys():
+            temp2 = {'mimeType': type2, 'count': old_json[type2]}
+            result_old.append(temp2)
+        with open(filepath + 'split.new.json', 'w+') as file2:
+            file2.write(json.dumps(result_new, indent=4, sort_keys=True))
+        with open(filepath + 'split.old.json', 'w+') as file3:
+            file3.write(json.dumps(result_old, indent=4, sort_keys=True))
+    return
+
+
 def main():
     if len(sys.argv) == 1:
         program = 'python '
@@ -148,12 +169,14 @@ def main():
         print(program + current_script + ' move_files source_folder destination_folder')
         print(program + current_script + ' get_magic_bytes source_folder')
         print(program + current_script + ' generate_mimetypes_xml_snippets source_folder')
-
+        print(program + current_script + ' generate_final_count_json file_path')
     elif len(sys.argv) == 3:
         if sys.argv[1] == 'get_magic_bytes':
             get_magic_bytes(sys.argv[2])
         if sys.argv[1] == 'generate_mimetypes_xml_snippets':
             generate_mimetypes_xml_snippets(sys.argv[2])
+        if sys.argv[1] == 'generate_final_count_json':
+            generate_final_count_json(sys.argv[2])
     elif len(sys.argv) == 4:
         if sys.argv[1] == 'move_files':
             move_files(sys.argv[2], sys.argv[3])

@@ -105,7 +105,7 @@ def function2(filenames, bucket_name, output_result=True):
 
 
 def read_from_type_files(filename):
-    with open(filename) as file1:
+    with open(filename, encoding='ascii') as file1:
         json_data = json.load(file1)
         files_to_process = []
         for key1 in json_data.keys():
