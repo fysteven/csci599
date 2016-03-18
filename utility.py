@@ -30,6 +30,23 @@ def get_all_files_in_directory(directory):
     return files2
 
 
+def get_all_files_in_directories(a_list_of_directories, verbose=False):
+    files2 = []
+    for directory in a_list_of_directories:
+        if verbose:
+            print(' '.join(['reading folder', directory]))
+        files2.extend(get_all_files_in_directory(directory))
+    return files2
+
+
+def read_lines_from_file(path_to_file):
+    files = []
+    with open(path_to_file) as file1:
+        for line in file1:
+            files.append(line.split()[0])
+    return files
+
+
 def generate_move_commands(base_directory):
     files = get_all_files_in_directory(base_directory)
     result = []
