@@ -41,9 +41,13 @@ public class YaoGeoTopicParser {
     public ArrayList<String> arrayList = new ArrayList<>();
 
     public HashSet<String> fileSet = new HashSet<>();
+    public int startIndex = 0;
     public static void main(String[] args) throws IOException, TikaException, SAXException {
         YaoGeoTopicParser yaoParser = new YaoGeoTopicParser();
-
+        if (args.length >= 1) {
+            yaoParser.startIndex = Integer.decode(args[0]);
+            System.out.println(new StringBuffer("starting index: ").append(yaoParser.startIndex).toString());
+        }
         yaoParser.preProcess();
 
         yaoParser.readIndexFile("/Users/Frank/PycharmProjects/599assignment1/geo-topic-parser-folder/geo-topic-all-files.txt");
@@ -96,10 +100,11 @@ public class YaoGeoTopicParser {
 //        arrayList.add("/Users/Frank/Desktop/fulldump/raw-dataset/gov/911/www/B4F2131A435E04591D9BF1D03E8C8B9BB3CC5773DD2CDB294D07887A42731F67");
 //        arrayList.add("/Users/Frank/Desktop/fulldump/raw-dataset/gov/abilityone/www/1C0C1634C7D0ACC3ED18FC0E368BA0ECBB9BEC0E00AC792640E0C87CFCD57C2D");
         if (this.arrayList != null) {
-            arrayList.addAll(this.arrayList);
+            //arrayList.addAll(this.arrayList);
+            arrayList = this.arrayList;
         }
         try {
-            for (int i = 0; i < arrayList.size(); i++) {
+            for (int i = startIndex; i < arrayList.size(); i++) {
                 if (i % 1000 == 0) {
                     System.out.println(i);
                 }
