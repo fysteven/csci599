@@ -2,17 +2,11 @@
  * Created by Frank on 3/12/16.
  */
 
-
-//import org.apache.tika.cli.TikaCLI;
 import org.apache.tika.exception.TikaException;
-//import org.apache.tika.io.TikaInputStream;
 import org.apache.tika.metadata.Metadata;
-//import org.apache.tika.metadata.serialization.JsonMetadataList;
 import org.apache.tika.parser.AutoDetectParser;
 import org.apache.tika.parser.ParseContext;
-//import org.apache.tika.parser.RecursiveParserWrapper;
 import org.apache.tika.sax.BodyContentHandler;
-//import org.xml.sax.ContentHandler;
 import org.xml.sax.SAXException;
 import org.apache.tika.parser.geo.topic.GeoParser;
 import org.apache.tika.parser.geo.topic.GeoParserConfig;
@@ -24,29 +18,33 @@ import java.io.*;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.*;
-
-import static java.util.Objects.*;
-//import java.net.URL;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.HashSet;
 
 public class YaoGeoTopicParser {
     final String gazetteer = "src/main/java/org/apache/tika/parser/geo/topic/model/allCountries.txt";
+    final String nerPath = "/Users/Frank/src/location-ner-model/org/apache/tika/parser/geo/topic/en-ner-location.bin";
 
-    final String folderName = "geo-topic-parser-folder-output";
-    public ArrayList<String> arrayList = new ArrayList<>();
+    final String folderName = "/Users/Frank/working-directory/geo-topic-parser-folder-output";
+    private final String baseDirectory = "/Users/Frank/Desktop/fulldump/raw-dataset/";
+    private Parser geoparser = new GeoParser();
+    private int ESTIMATED_SIZE = 1419000;
+    public ArrayList<String> arrayList = new ArrayList<>(this.ESTIMATED_SIZE);
 
     public HashSet<String> fileSet = new HashSet<>();
     public int startIndex = 0;
     public Integer endIndex;
+
     public static void main(String[] args) throws IOException, TikaException, SAXException {
         YaoGeoTopicParser yaoParser = new YaoGeoTopicParser();
         if (args.length >= 1) {
             yaoParser.startIndex = Integer.decode(args[0]);
-            System.out.println(new StringBuffer("starting at index: ").append(yaoParser.startIndex).toString());
+            System.out.println((new StringBuffer("starting at index: ")).append(yaoParser.startIndex).toString());
         }
         if (args.length >= 2) {
             yaoParser.endIndex = Integer.decode(args[1]);
-            System.out.println(new StringBuffer("ending at index: ").append(yaoParser.endIndex).toString());
+            System.out.println((new StringBuffer("ending at index: ")).append(yaoParser.endIndex).toString());
         }
         yaoParser.preProcess();
 
@@ -57,21 +55,34 @@ public class YaoGeoTopicParser {
     public void readIndexFile(String string) {
         try (BufferedReader br = new BufferedReader(new FileReader(string))) {
             String line;
-            while ((line = br.readLine()) != null) {
-                this.arrayList.add(line);
+
+            int startIndex = this.startIndex;
+            int endIndex = this.endIndex == null ? Integer.MAX_VALUE : this.endIndex;
+
+            for (int index = 0 ;(line = br.readLine()) != null; index++) {
+                if (index < startIndex) {
+                    continue;
+                }
+                if (index >= startIndex && index < endIndex) {
+                    this.arrayList.add(line.replace(this.baseDirectory, ""));
+                }
+                if (index >= endIndex) {
+                    break;
+                }
+
             }
+            br.close();
         } catch (IOException e) {
             e.printStackTrace();
         }
-
     }
 
     public void preProcess() {
-        File directory = new File(folderName);
+        File directory = new File(this.folderName);
         if (!directory.exists()) {
             boolean result = false;
             try {
-                result = directory.mkdir();
+                result = directory.mkdirs();
 
             } catch (SecurityException e) {
                 e.printStackTrace();
@@ -95,7 +106,7 @@ public class YaoGeoTopicParser {
     }
 
     public void run() {
-        ArrayList<String> arrayList = new ArrayList<>();
+        ArrayList<String> arrayList = new ArrayList<>(1);
 //        arrayList.add("/Users/Frank/Desktop/fulldump/raw-dataset/gov/911/www/32F91475FDAEBD5162E0098CECC9193AD0BAC8681E3CCAFC7295877BE0D5571A");
 //        arrayList.add("/Users/Frank/Desktop/fulldump/raw-dataset/gov/911/www/B4F2131A435E04591D9BF1D03E8C8B9BB3CC5773DD2CDB294D07887A42731F67");
 //        arrayList.add("/Users/Frank/Desktop/fulldump/raw-dataset/gov/abilityone/www/1C0C1634C7D0ACC3ED18FC0E368BA0ECBB9BEC0E00AC792640E0C87CFCD57C2D");
@@ -103,128 +114,104 @@ public class YaoGeoTopicParser {
             //arrayList.addAll(this.arrayList);
             arrayList = this.arrayList;
         }
-        List<TaskObject> taskList = new ArrayList<>();
-        int endIndex;
-        if (this.endIndex == null) {
-            endIndex = arrayList.size();
-        } else {
-            endIndex = this.endIndex < arrayList.size() ? this.endIndex : arrayList.size();
-        }
-        for (int i = startIndex; i < endIndex; i++) {
-            if (i % 1000 == 0) {
-                System.out.println(i);
-            }
-            String filepath = arrayList.get(i);
-            if (this.fileSet.contains(Paths.get(filepath).getFileName().toString())) {
-                continue;
-            }
-            taskList.add(new TaskObject(filepath));
-        }
 
-        taskList.parallelStream().forEach(TaskObject::run);
-        //taskList.stream().forEach(TaskObject::run);
+        try {
+            for (int i = 0; i < arrayList.size(); i++) {
+//                if (i % 1000 == 0) {
+//                    System.out.println(i);
+//                }
+                System.out.println(i + this.startIndex);
+                String relativePath = arrayList.get(i);
+                StringBuilder filePathBuilder = new StringBuilder(baseDirectory);
+                filePathBuilder.append(relativePath);
+                String absolutePath = filePathBuilder.toString();
+
+                if (this.fileSet.contains(Paths.get(absolutePath).getFileName().toString())) {
+                    continue;
+                }
+                String text = this.extractText(new FileInputStream(absolutePath));
+                if (text == null) {
+                    continue;
+                }
+                Metadata metadata = this.parseGeoTopic(text.replaceAll("(?m)^[ \t]*\r?\n", ""));
+                Path path = Paths.get(absolutePath);
+                this.dumpMetadata(metadata, this.folderName, path.getFileName().toString());
+            }
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
     }
 
+    public String extractText(InputStream stream) throws IOException {
 
-    public class TaskObject {
-        private String filepath;
-        private final String folderName = "geo-topic-parser-folder-output";
-        public TaskObject(String string) {
-            this.filepath = string;
+        AutoDetectParser parser = new AutoDetectParser();
+        BodyContentHandler handler = new BodyContentHandler();
+        Metadata metadata = new Metadata();
+        //InputStream stream = getResourceAsStream("/Users/Frank/Downloads/OPT-Workshop-2015-2016.pdf";
+        try {
+            parser.parse(stream, handler, metadata);
+            return handler.toString();
+        } catch (SAXException | TikaException e) {
+            e.printStackTrace();
+        } finally {
+            stream.close();
         }
-        private Parser geoparser = new GeoParser();
-        private final String nerPath = "/Users/Frank/src/location-ner-model/org/apache/tika/parser/geo/topic/en-ner-location.bin";
+        return null;
+    }
 
-        public void run() {
-            String text = null;
-            try {
-                text = this.extractText(new FileInputStream(filepath));
-            } catch (IOException e) {
-                e.printStackTrace();
-            }
-            if (text == null) {
-                return;
-            }
-            Metadata metadata = this.parseGeoTopic(text.replaceAll("(?m)^[ \t]*\r?\n", ""));
-            Path path = Paths.get(filepath);
-            try {
-                this.dumpMetadata(metadata, this.folderName, path.getFileName().toString());
-            } catch (IOException e) {
-                e.printStackTrace();
-            }
-        }
+    public Metadata parseGeoTopic(String text) {
 
-        public String extractText(InputStream stream) throws IOException {
+        Metadata metadata = new Metadata();
+        ParseContext context = new ParseContext();
+        GeoParserConfig config = new GeoParserConfig();
+        //config.setGazetterPath(gazetteer);
+        config.setNERModelPath(nerPath);
+        context.set(GeoParserConfig.class, config);
 
-            AutoDetectParser parser = new AutoDetectParser();
-            BodyContentHandler handler = new BodyContentHandler();
-            Metadata metadata = new Metadata();
-            //InputStream stream = getResourceAsStream("/Users/Frank/Downloads/OPT-Workshop-2015-2016.pdf";
-            try {
-                parser.parse(stream, handler, metadata);
-                return handler.toString();
-            } catch (SAXException | TikaException e) {
-                e.printStackTrace();
-            } finally {
-                stream.close();
-            }
-            return null;
+        InputStream inputStream = null;
+        try {
+            inputStream = new ByteArrayInputStream(text.getBytes("UTF-8"));
+        } catch (UnsupportedEncodingException e) {
+            e.printStackTrace();
         }
 
-        public Metadata parseGeoTopic(String text) {
-
-            Metadata metadata = new Metadata();
-            ParseContext context = new ParseContext();
-            GeoParserConfig config = new GeoParserConfig();
-            //config.setGazetterPath(gazetteer);
-            config.setNERModelPath(this.nerPath);
-            context.set(GeoParserConfig.class, config);
-
-            InputStream inputStream = null;
-            try {
-                inputStream = new ByteArrayInputStream(text.getBytes("UTF-8"));
-            } catch (UnsupportedEncodingException e) {
-                e.printStackTrace();
-            }
-
-            try {
-                geoparser.parse(inputStream, new BodyContentHandler(), metadata, context);
-            } catch (IOException | SAXException | TikaException e) {
-                e.printStackTrace();
-            }
-
-            //System.out.println(metadata.toString());
-
-            return metadata;
+        try {
+            geoparser.parse(inputStream, new BodyContentHandler(), metadata, context);
+        } catch (IOException | SAXException | TikaException e) {
+            e.printStackTrace();
         }
 
-        public boolean dumpMetadata(Metadata metadata, String folder, String filename) throws IOException {
-            if (metadata == null) {
-                return false;
-            }
-            if (metadata.size() == 0) {
-                return true;
-            }
-            HashMap<String, String> map = new HashMap<>();
-            for (String key : metadata.names()) {
-                map.put(key, metadata.get(key));
-            }
-            JSONObject json = new JSONObject(map);
+        //System.out.println(metadata.toString());
 
-            FileWriter fileWriter = null;
-            try {
-                fileWriter = new FileWriter(folder + '/' + filename + ".json");
-            } catch (IOException e) {
-                e.printStackTrace();
-            }
-            String result = json.toJSONString();
-            if (result != null && fileWriter != null) {
-                fileWriter.write(result);
-                fileWriter.flush();
-                fileWriter.close();
-            }
+        return metadata;
+    }
 
+    public boolean dumpMetadata(Metadata metadata, String folder, String filename) throws IOException {
+        if (metadata == null) {
+            return false;
+        }
+        if (metadata.size() == 0) {
             return true;
         }
+        HashMap<String, String> map = new HashMap<>();
+        for (String key : metadata.names()) {
+            map.put(key, metadata.get(key));
+        }
+        JSONObject json = new JSONObject(map);
+
+        FileWriter fileWriter = null;
+        try {
+            fileWriter = new FileWriter(folder + '/' + filename + ".json");
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+        String result = json.toJSONString();
+        if (result != null && fileWriter != null) {
+            fileWriter.write(result);
+            fileWriter.flush();
+            fileWriter.close();
+        }
+
+        return true;
     }
 }
