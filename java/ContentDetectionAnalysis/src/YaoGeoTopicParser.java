@@ -24,29 +24,29 @@ import java.io.*;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Objects;
+import java.util.*;
 
 import static java.util.Objects.*;
 //import java.net.URL;
 
 public class YaoGeoTopicParser {
     final String gazetteer = "src/main/java/org/apache/tika/parser/geo/topic/model/allCountries.txt";
-    final String nerPath = "/Users/Frank/src/location-ner-model/org/apache/tika/parser/geo/topic/en-ner-location.bin";
 
     final String folderName = "geo-topic-parser-folder-output";
-    private Parser geoparser = new GeoParser();
     public ArrayList<String> arrayList = new ArrayList<>();
 
     public HashSet<String> fileSet = new HashSet<>();
     public int startIndex = 0;
+    public Integer endIndex;
     public static void main(String[] args) throws IOException, TikaException, SAXException {
         YaoGeoTopicParser yaoParser = new YaoGeoTopicParser();
         if (args.length >= 1) {
             yaoParser.startIndex = Integer.decode(args[0]);
-            System.out.println(new StringBuffer("starting index: ").append(yaoParser.startIndex).toString());
+            System.out.println(new StringBuffer("starting at index: ").append(yaoParser.startIndex).toString());
+        }
+        if (args.length >= 2) {
+            yaoParser.endIndex = Integer.decode(args[1]);
+            System.out.println(new StringBuffer("ending at index: ").append(yaoParser.endIndex).toString());
         }
         yaoParser.preProcess();
 
@@ -103,98 +103,128 @@ public class YaoGeoTopicParser {
             //arrayList.addAll(this.arrayList);
             arrayList = this.arrayList;
         }
-        try {
-            for (int i = startIndex; i < arrayList.size(); i++) {
-                if (i % 1000 == 0) {
-                    System.out.println(i);
-                }
-                String filepath = arrayList.get(i);
-                if (this.fileSet.contains(Paths.get(filepath).getFileName().toString())) {
-                    continue;
-                }
-                String text = this.extractText(new FileInputStream(filepath));
-                if (text == null) {
-                    continue;
-                }
-                Metadata metadata = this.parseGeoTopic(text);
-                Path path = Paths.get(filepath);
-                this.dumpMetadata(metadata, folderName, path.getFileName().toString());
+        List<TaskObject> taskList = new ArrayList<>();
+        int endIndex;
+        if (this.endIndex == null) {
+            endIndex = arrayList.size();
+        } else {
+            endIndex = this.endIndex < arrayList.size() ? this.endIndex : arrayList.size();
+        }
+        for (int i = startIndex; i < endIndex; i++) {
+            if (i % 1000 == 0) {
+                System.out.println(i);
             }
-        } catch (IOException e) {
-            e.printStackTrace();
+            String filepath = arrayList.get(i);
+            if (this.fileSet.contains(Paths.get(filepath).getFileName().toString())) {
+                continue;
+            }
+            taskList.add(new TaskObject(filepath));
         }
+
+        taskList.parallelStream().forEach(TaskObject::run);
+        //taskList.stream().forEach(TaskObject::run);
     }
 
-    public String extractText(InputStream stream) throws IOException {
 
-        AutoDetectParser parser = new AutoDetectParser();
-        BodyContentHandler handler = new BodyContentHandler();
-        Metadata metadata = new Metadata();
-        //InputStream stream = getResourceAsStream("/Users/Frank/Downloads/OPT-Workshop-2015-2016.pdf";
-        try {
-            parser.parse(stream, handler, metadata);
-            return handler.toString();
-        } catch (SAXException | TikaException e) {
-            e.printStackTrace();
-        } finally {
-            stream.close();
+    public class TaskObject {
+        private String filepath;
+        private final String folderName = "geo-topic-parser-folder-output";
+        public TaskObject(String string) {
+            this.filepath = string;
         }
-        return null;
-    }
+        private Parser geoparser = new GeoParser();
+        private final String nerPath = "/Users/Frank/src/location-ner-model/org/apache/tika/parser/geo/topic/en-ner-location.bin";
 
-    public Metadata parseGeoTopic(String text) {
-
-        Metadata metadata = new Metadata();
-        ParseContext context = new ParseContext();
-        GeoParserConfig config = new GeoParserConfig();
-        //config.setGazetterPath(gazetteer);
-        config.setNERModelPath(nerPath);
-        context.set(GeoParserConfig.class, config);
-
-        InputStream inputStream = null;
-        try {
-            inputStream = new ByteArrayInputStream(text.getBytes("UTF-8"));
-        } catch (UnsupportedEncodingException e) {
-            e.printStackTrace();
+        public void run() {
+            String text = null;
+            try {
+                text = this.extractText(new FileInputStream(filepath));
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+            if (text == null) {
+                return;
+            }
+            Metadata metadata = this.parseGeoTopic(text.replaceAll("(?m)^[ \t]*\r?\n", ""));
+            Path path = Paths.get(filepath);
+            try {
+                this.dumpMetadata(metadata, this.folderName, path.getFileName().toString());
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
         }
 
-        try {
-            geoparser.parse(inputStream, new BodyContentHandler(), metadata, context);
-        } catch (IOException | SAXException | TikaException e) {
-            e.printStackTrace();
+        public String extractText(InputStream stream) throws IOException {
+
+            AutoDetectParser parser = new AutoDetectParser();
+            BodyContentHandler handler = new BodyContentHandler();
+            Metadata metadata = new Metadata();
+            //InputStream stream = getResourceAsStream("/Users/Frank/Downloads/OPT-Workshop-2015-2016.pdf";
+            try {
+                parser.parse(stream, handler, metadata);
+                return handler.toString();
+            } catch (SAXException | TikaException e) {
+                e.printStackTrace();
+            } finally {
+                stream.close();
+            }
+            return null;
         }
 
-        //System.out.println(metadata.toString());
+        public Metadata parseGeoTopic(String text) {
 
-        return metadata;
-    }
+            Metadata metadata = new Metadata();
+            ParseContext context = new ParseContext();
+            GeoParserConfig config = new GeoParserConfig();
+            //config.setGazetterPath(gazetteer);
+            config.setNERModelPath(this.nerPath);
+            context.set(GeoParserConfig.class, config);
 
-    public boolean dumpMetadata(Metadata metadata, String folder, String filename) throws IOException {
-        if (metadata == null) {
-            return false;
+            InputStream inputStream = null;
+            try {
+                inputStream = new ByteArrayInputStream(text.getBytes("UTF-8"));
+            } catch (UnsupportedEncodingException e) {
+                e.printStackTrace();
+            }
+
+            try {
+                geoparser.parse(inputStream, new BodyContentHandler(), metadata, context);
+            } catch (IOException | SAXException | TikaException e) {
+                e.printStackTrace();
+            }
+
+            //System.out.println(metadata.toString());
+
+            return metadata;
         }
-        if (metadata.size() == 0) {
+
+        public boolean dumpMetadata(Metadata metadata, String folder, String filename) throws IOException {
+            if (metadata == null) {
+                return false;
+            }
+            if (metadata.size() == 0) {
+                return true;
+            }
+            HashMap<String, String> map = new HashMap<>();
+            for (String key : metadata.names()) {
+                map.put(key, metadata.get(key));
+            }
+            JSONObject json = new JSONObject(map);
+
+            FileWriter fileWriter = null;
+            try {
+                fileWriter = new FileWriter(folder + '/' + filename + ".json");
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+            String result = json.toJSONString();
+            if (result != null && fileWriter != null) {
+                fileWriter.write(result);
+                fileWriter.flush();
+                fileWriter.close();
+            }
+
             return true;
         }
-        HashMap<String, String> map = new HashMap<>();
-        for (String key : metadata.names()) {
-            map.put(key, metadata.get(key));
-        }
-        JSONObject json = new JSONObject(map);
-
-        FileWriter fileWriter = null;
-        try {
-            fileWriter = new FileWriter(folder + '/' + filename + ".json");
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
-        String result = json.toJSONString();
-        if (result != null && fileWriter != null) {
-            fileWriter.write(result);
-            fileWriter.flush();
-            fileWriter.close();
-        }
-
-        return true;
     }
 }
