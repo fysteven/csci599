@@ -1,6 +1,3 @@
-import re
-import os
-import sys
 import json
 from utility import get_all_files_in_directory
 from xml.etree.ElementTree import parse, fromstring
@@ -46,7 +43,23 @@ def parse_owl_directory(path):
         concept_dictionary = parse_owl_file(entry)
         entologies.update(concept_dictionary)
     dump(entologies, 'sweet_concepts.json')
+
+    categories = transform_to_categories(entologies)
+    dump(categories, 'sweet_concept_categories.json')
     return
+
+
+def transform_to_categories(dictionary):
+    categories = dict()
+
+    for key in dictionary:
+        value = dictionary[key]
+        for item in value:
+            if item not in categories:
+                categories[item] = dict()
+            categories[item][key] = 1
+
+    return categories
 
 
 def dump(dictionary, output):
