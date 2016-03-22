@@ -17,13 +17,15 @@ def get_all_the_files(mypath):
     return onlyfiles
 
 
-def get_all_files_in_directory(directory):
+def get_all_files_in_directory(directory, suffix=None):
     files2 = []
     for root, dirs, files in os.walk(directory):
         for name in files:
             if name == '.DS_Store':
                 pass
-            else:
+            elif suffix is None:
+                files2.append(os.path.join(root, name))
+            elif name.endswith(suffix):
                 files2.append(os.path.join(root, name))
         # for name in dirs:
             # files2.append(os.path.join(root, name))
