@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <meta charset="utf-8">
+<title>MP4 Filename: Movie Data Size</title>
 <style>
 
 body {
@@ -34,9 +35,40 @@ label {
   right: 10px;
 }
 
+.d3-tip {
+  line-height: 1;
+  font-weight: bold;
+  padding: 12px;
+  background: rgba(0, 0, 0, 0.8);
+  color: #fff;
+  border-radius: 2px;
+}
+
+/* Creates a small triangle extender for the tooltip */
+.d3-tip:after {
+  box-sizing: border-box;
+  display: inline;
+  font-size: 10px;
+  width: 100%;
+  line-height: 1;
+  color: rgba(0, 0, 0, 0.8);
+  content: "\25BC";
+  position: absolute;
+  text-align: center;
+}
+
+/* Style northward tooltips differently */
+.d3-tip.n:after {
+  margin: -1px 0 0 0;
+  top: 100%;
+  left: 0;
+}
+
 </style>
 <label><input type="checkbox"> Sort values</label>
 <script src="./d3.v3.min.js"></script>
+<script src="./d3.tip.v0.6.3.js"></script>
+
 <script>
 
 var margin = {top: 20, right: 20, bottom: 30, left: 40},
@@ -61,11 +93,20 @@ var yAxis = d3.svg.axis()
     .orient("left")
     //.tickFormat();
 
+var tip = d3.tip()
+  .attr('class', 'd3-tip')
+  .offset([0, 0])
+  .html(function(d) {
+    return "<strong>Filename:</strong> <span style='color:red'>" + d.filename + "</span> <br> <strong>Movie Data Size: </strong><span>" + d.movieDataSize + "</span>";
+  })
+
 var svg = d3.select("body").append("svg")
     .attr("width", width + margin.left + margin.right)
     .attr("height", height + margin.top + margin.bottom)
   .append("g")
     .attr("transform", "translate(" + margin.left + "," + margin.top + ")");
+
+svg.call(tip);
 
 d3.tsv("movie-data-size.tsv", function(error, data) {
 
@@ -98,13 +139,15 @@ d3.tsv("movie-data-size.tsv", function(error, data) {
       .attr("x", function(d) { return x(d.filename); })
       .attr("width", x.rangeBand())
       .attr("y", function(d) { return y(d.movieDataSize); })
-      .attr("height", function(d) { return height - y(d.movieDataSize); });
+      .attr("height", function(d) { return height - y(d.movieDataSize); })
+      .on('mouseover', tip.show)
+      .on('mouseout', tip.hide);
 
   d3.select("input").on("change", change);
 
   var sortTimeout = setTimeout(function() {
-    d3.select("input").property("checked", true).each(change);
-  }, 2000);
+    //d3.select("input").property("checked", true).each(change);
+  }, 4000);
 
   function change() {
     clearTimeout(sortTimeout);
