@@ -83,10 +83,16 @@ def run_ner(start_index=0, end_index=MAX_INT_VALUE):
         parsed = parser.from_file(''.join([base_directory, entry]))
         if 'metadata' in parsed:
             if 'X-TIKA:EXCEPTION:embedded_exception' in parsed['metadata']:
+                index += 1
                 continue
         if 'content' in parsed:
             if parsed['content'] is not None:
                 # print(json.dumps(parsed['metadata'], indent=4))
+                # print(parsed['content'])
+                # print('content size ', len(parsed['content']))
+                if len(parsed['content']) > 1 * 1024 * 1024:
+                    index += 1
+                    continue
                 measurements = extract_measurement(parsed['content'])
                 if measurements is not None and len(measurements) > 0:
                     measurement_list.append({entry.split('/')[-1]: measurements})
