@@ -222,6 +222,23 @@ def count_files(path_to_file):
     return count
 
 
+def transform_json(filename, metadata_field_key):
+    with open(filename) as input_file:
+        json_data = json.load(input_file)
+
+        for entry in json_data:
+            key = entry.keys()[0]
+            value = entry[key]
+            # print(metadata_field_key, value)
+            entry[key] = dict()
+            entry[key][metadata_field_key] = value
+
+        first_part = filename.split('.')[0]
+        with open(first_part + '-transformed.json', 'w') as output_file:
+            output_file.write(json.dumps(json_data, indent=4))
+    return
+
+
 def main():
     if len(sys.argv) == 1:
         program = 'python '
@@ -236,6 +253,7 @@ def main():
         print(program + current_script + ' generate_index_for_folder path_to_dir')
         print(program + current_script + ' merge_jsons json1 json2 json3 ...')
         print(program + current_script + ' count_files json_file')
+        print(program + current_script + ' transform_json json_file a_metadata_field_name')
     elif len(sys.argv) == 3:
         if sys.argv[1] == 'print':
             # print_all_files('/Users/Frank/windows10/awang-acadis-1')
@@ -255,6 +273,8 @@ def main():
     elif len(sys.argv) == 4:
         if sys.argv[1] == 'merge_type_and_key':
             merge_type_and_key(sys.argv[2], sys.argv[3])
+        elif sys.argv[1] =='transform_json':
+            transform_json(sys.argv[2], sys.argv[3])
     if len(sys.argv) > 2:
         if sys.argv[1] == 'merge_jsons':
             merge_our_json(sys.argv[2:len(sys.argv)])
