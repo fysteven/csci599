@@ -100,6 +100,38 @@ class GeoTopicStorage:
         return filename, geo_topic_metadata
 
 
+def test():
+    time1 = datetime.datetime.now()
+    measurement_storage = MeasurementStorage('/Users/Frank/working-directory/ner-measurement-mentions/')
+    print(measurement_storage.get_next_measurement_object())
+    print(measurement_storage.get_next_measurement_object())
+
+    sweet_storage = SweetStorage('/Users/Frank/working-directory/filename-sweet/filename-sweet.json')
+    print(sweet_storage.get_next_sweet_object())
+    print(sweet_storage.get_next_sweet_object())
+
+    geo_topic_storage = GeoTopicStorage('/Users/Frank/working-directory/geo-topic-parser-folder-output/')
+    print(geo_topic_storage.get_next_geo_topic_object())
+    print(geo_topic_storage.get_next_geo_topic_object())
+
+    total_dictionary = dict()
+
+    while measurement_storage.has_next_measurement_object():
+        filename, measurement_metadata = measurement_storage.get_next_measurement_object()
+        if filename not in total_dictionary:
+            total_dictionary[filename] = {}
+        total_dictionary[filename].update(measurement_metadata)
+
+    while sweet_storage.has_next_sweet_object():
+        filename, sweet_metadata = sweet_storage.get_next_sweet_object()
+        if filename not in total_dictionary:
+            total_dictionary[filename] = {}
+        total_dictionary[filename].update(sweet_storage)
+
+    time2 = datetime.datetime.now()
+    print(time2 - time1)
+    return
+
 def main():
     time1 = datetime.datetime.now()
     measurement_storage = MeasurementStorage('/Users/Frank/working-directory/ner-measurement-mentions/')
