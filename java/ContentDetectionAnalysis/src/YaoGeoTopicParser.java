@@ -2,11 +2,13 @@
  * Created by Frank on 3/12/16.
  */
 
+import com.uwyn.jhighlight.fastutil.Hash;
 import org.apache.tika.exception.TikaException;
 import org.apache.tika.metadata.Metadata;
 import org.apache.tika.parser.AutoDetectParser;
 import org.apache.tika.parser.ParseContext;
 import org.apache.tika.sax.BodyContentHandler;
+import org.json.JSONArray;
 import org.xml.sax.SAXException;
 import org.apache.tika.parser.geo.topic.GeoParser;
 import org.apache.tika.parser.geo.topic.GeoParserConfig;
@@ -21,6 +23,7 @@ import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.List;
 
 public class YaoGeoTopicParser {
     final String gazetteer = "src/main/java/org/apache/tika/parser/geo/topic/model/allCountries.txt";
@@ -35,6 +38,7 @@ public class YaoGeoTopicParser {
     public HashSet<String> fileSet = new HashSet<>();
     public int startIndex = 0;
     public Integer endIndex;
+    public List<HashMap> resultList;
 
     public static void main(String[] args) throws IOException, TikaException, SAXException {
         YaoGeoTopicParser yaoParser = new YaoGeoTopicParser();
@@ -72,6 +76,8 @@ public class YaoGeoTopicParser {
 
             }
             br.close();
+
+            resultList = new ArrayList<>(this.arrayList.size() / 2);
         } catch (IOException e) {
             e.printStackTrace();
         }
@@ -135,8 +141,17 @@ public class YaoGeoTopicParser {
                 }
                 Metadata metadata = this.parseGeoTopic(text.replaceAll("(?m)^[ \t]*\r?\n", ""));
                 Path path = Paths.get(absolutePath);
-                this.dumpMetadata(metadata, this.folderName, path.getFileName().toString());
+
+                this.storeMetadata(metadata, path.getFileName().toString(), this.resultList);
+                //this.dumpMetadata(metadata, this.folderName, path.getFileName().toString());
             }
+            StringBuilder outputFileNameBuilder = new StringBuilder();
+            outputFileNameBuilder.append("from");
+            outputFileNameBuilder.append(String.valueOf(this.startIndex));
+            outputFileNameBuilder.append("to");
+            outputFileNameBuilder.append(String.valueOf(this.startIndex + this.arrayList.size()));
+            this.dumpMetadata(this.resultList, this.folderName, outputFileNameBuilder.toString());
+
         } catch (IOException e) {
             e.printStackTrace();
         }
@@ -214,4 +229,49 @@ public class YaoGeoTopicParser {
 
         return true;
     }
+
+    public boolean dumpMetadata(List<HashMap> list, String folder, String filename) {
+        if (list == null) {
+            return false;
+        }
+        if (list.size() == 0) {
+            return true;
+        }
+        JSONArray json = new JSONArray(list);
+
+        try {
+            FileWriter fileWriter = new FileWriter(folder + '/' + filename + ".json");
+
+            String result = json.toString(4);
+            if (result != null) {
+                fileWriter.write(result);
+                fileWriter.flush();
+                fileWriter.close();
+            }
+
+        } catch (IOException e) {
+            e.printStackTrace();
+
+        }
+        return true;
+    }
+
+    public boolean storeMetadata(Metadata metadata, String fileName, List<HashMap> list) {
+        if (metadata == null) {
+            return false;
+        }
+        if (metadata.size() == 0) {
+            return true;
+        }
+        HashMap<String, HashMap> outerMap = new HashMap<>();
+        HashMap<String, String> map = new HashMap<>();
+        for (String key : metadata.names()) {
+            map.put(key, metadata.get(key));
+        }
+        outerMap.put(fileName, map);
+        list.add(outerMap);
+
+        return true;
+    }
+
 }
