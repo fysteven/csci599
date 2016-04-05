@@ -3,7 +3,7 @@ import sys
 import json
 try:
     import cbor
-except ImportError, e:
+except ImportError:
     pass
 
 # from os.path import isfile, join

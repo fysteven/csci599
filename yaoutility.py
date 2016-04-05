@@ -30,7 +30,7 @@ class MeasurementStorage:
             return None
         dictionary_object = self.measurement_list[self.next]
         self.next += 1
-        filename = dictionary_object.keys()[0]
+        filename = list(dictionary_object.keys())[0]
         measurement_metadata = {'measurement': dictionary_object[filename]}
         return filename, measurement_metadata
 
@@ -58,7 +58,7 @@ class SweetStorage:
             return None
         sweet_object = self.sweet_list[self.next]
         self.next += 1
-        filename = sweet_object.keys()[0]
+        filename = list(sweet_object.keys())[0]
         sweet_metadata = {'sweet': sweet_object[filename].keys()}
         return filename, sweet_metadata
 
@@ -95,7 +95,7 @@ class GeoTopicStorage:
             return None
         geo_topic_object = self.geo_topic_list[self.next]
         self.next += 1
-        filename = geo_topic_object.keys()[0]
+        filename = list(geo_topic_object.keys())[0]
         geo_topic_metadata = geo_topic_object[filename]
         return filename, geo_topic_metadata
 
@@ -126,11 +126,12 @@ def test():
         filename, sweet_metadata = sweet_storage.get_next_sweet_object()
         if filename not in total_dictionary:
             total_dictionary[filename] = {}
-        total_dictionary[filename].update(sweet_storage)
+        total_dictionary[filename].update(sweet_metadata)
 
     time2 = datetime.datetime.now()
     print(time2 - time1)
     return
+
 
 def main():
     time1 = datetime.datetime.now()

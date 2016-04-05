@@ -5,6 +5,7 @@ import argparse
 import yaoner
 import os
 from tika import parser
+import csv
 
 __author__ = 'Frank'
 
@@ -134,6 +135,43 @@ def reverse(dir_list, output_name):
     return
 
 
+def transform_json_to_tsv(json_name, output_file_name):
+
+    with open(json_name) as json_file, open(output_file_name, 'w') as output_file:
+        csv_writer = csv.writer(output_file, delimiter='\t')
+        csv_writer.writerow(['filename', 'sweetNumber', 'sweetList'])
+        json_data = json.load(json_file)
+
+        rows = []
+        for filename in json_data.keys():
+            # sweet_list = list(json_data[filename].keys())
+            # sweet_list = [key.encode('ascii') for key in json_data[filename]]
+            sweet_list = []
+            for key in json_data[filename]:
+                sweet_list.append(str(key))
+            rows.append([filename, len(sweet_list), json.dumps(sweet_list)])
+
+        csv_writer.writerows(rows)
+
+    return
+# transform_json_to_tsv('/Users/Frank/working-directory/filename-sweet/filename-sweet.json', '/Users/Frank/working-directory/filename-sweet/sweet.tsv')
+
+
+def count_concepts_in_json(json_name, output_name):
+    with open(json_name) as json_file, open(output_name, 'w') as output_json_file:
+        json_data = json.load(json_file)
+        dictionary = dict()
+        for filename in json_data:
+            for concept in json_data[filename]:
+                if concept not in dictionary:
+                    dictionary[concept] = 1
+                else:
+                    dictionary[concept] += 1
+        output_json_file.write(json.dumps(dictionary, indent=4))
+    return
+
+count_concepts_in_json('/Users/Frank/working-directory/filename-sweet/filename-sweet.json', '/Users/Frank/working-directory/filename-sweet/1.json')
+
 def main():
 
     arg_parser = argparse.ArgumentParser('Yao EXIF tool')
@@ -164,3 +202,4 @@ def main():
 
 if __name__ == '__main__':
     main()
+
