@@ -12,6 +12,12 @@ class MeasurementStorage:
         self.next = 0
         self.get_measurement_objects_from(directory)
 
+    def length_of_measurement_list(self):
+        return len(self.measurement_list)
+
+    def __len__(self):
+        return len(self.measurement_list)
+
     def get_measurement_objects_from(self, directory):
         files = get_all_files_in_directory(directory)
 
