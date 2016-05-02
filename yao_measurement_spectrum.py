@@ -121,11 +121,62 @@ def merge_units_of_measurement(file_list, output_name):
     return
 
 
+def filter_tsv(tsv_file, unit_list_index):
+    with open(tsv_file) as input_file, open(unit_list_index) as unit_list_index_file, open(tsv_file + '.filtered', 'w') as output_file:
+        unit_dictionary = set()
+        for line in unit_list_index_file:
+            words = line.split()
+            if len(words) > 0:
+                unit_dictionary.add(words[0].lower())
+
+        csv_reader = csv.reader(input_file, delimiter='\t')
+        csv_writer = csv.writer(output_file, delimiter='\t')
+        count = 0
+        for row in csv_reader:
+            if count == 0:
+                csv_writer.writerow(row)
+                count += 1
+                continue
+            else:
+                if row[0].lower() in unit_dictionary:
+                    csv_writer.writerow(row)
+                count += 1
+
+
+def print_tsv(tsv_filename):
+    with open(tsv_filename) as input_file:
+        csv_reader = csv.reader(input_file, delimiter='\t')
+        the_list = list()
+        count = 0
+        for row in csv_reader:
+            # print(row)
+            if count == 0:
+                count += 1
+                for _ in range(0, len(row)):
+                    the_list.append(list())
+                # the_list.append([list() for _ in range(0, len(row))])
+                continue
+            else:
+                for idx, val in enumerate(row):
+                    # print(idx)
+                    if idx != 0:
+                        val = float(val)
+                    the_list[idx].append(val)
+
+                count += 1
+
+        for item in the_list:
+            print(item)
+    return
+
+
 def main():
 
     # run_for_spectrum_all('/Users/Frank/working-directory/spectrum/spectrum-all.tsv')
-    run_extract_measurements('/Users/Frank/working-directory/units/nistsp330.txt', '/Users/Frank/working-directory/units/nistsp330-units.txt')
-    # merge_units_of_measurement(['/Users/Frank/working-directory/units/units-american-.txt', '/Users/Frank/working-directory/units/units.txt'], '/Users/Frank/working-directory/units/all-units.txt')
+    # run_extract_measurements('/Users/Frank/working-directory/units/nistsp330.txt', '/Users/Frank/working-directory/units/nistsp330-units.txt')
+    # merge_units_of_measurement(['/Users/Frank/working-directory/units/nistsp330-units.txt'], '/Users/Frank/working-directory/units/all-units-new.txt')
+    # filter_tsv('/Users/Frank/working-directory/spectrum/spectrum-all.tsv', '/Users/Frank/working-directory/units/all-units.txt')
+    print_tsv('/Users/Frank/working-directory/spectrum/spectrum-all.tsv.filtered')
     return
 
 if __name__ == '__main__':
