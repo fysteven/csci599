@@ -11,6 +11,13 @@ except ImportError:
 __author__ = 'Frank'
 
 
+def create_parent_folder_if_needed_for_output_file(output_filename):
+    output_dir = os.path.dirname(output_filename)
+    if not os.path.exists(output_dir):
+        os.makedirs(output_dir)
+    return
+
+
 def get_all_the_files(mypath):
     #onlyfiles = [f for f in listdir(mypath) if isfile(join(mypath, f))]
     onlyfiles = os.listdir(mypath)

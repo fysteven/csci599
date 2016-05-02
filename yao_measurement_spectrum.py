@@ -3,6 +3,7 @@ import sys
 import json
 import csv
 from yaoutility import *
+from yaoner import extract_measurement
 
 __author__ = 'Frank'
 
@@ -78,12 +79,53 @@ def run_for_spectrum_all(output_name):
     return
 
 
+def run_extract_measurements(input_file_name, output_file_name):
+    with open(input_file_name) as input_file, open(output_file_name, 'w+') as output_file:
+        string = input_file.read()
+        string2 = []
+        for char in string:
+            if ord(char) < 128:
+                string2.append(char)
+
+        result = str()
+        try:
+            result = extract_measurement(''.join(string2))
+        except UnicodeDecodeError as e:
+            # sys.stderr(e.message)
+            pass
+        for entry in result:
+            words = entry.split(' ')
+            if words[1] == '%' or words[1] == '=' or words[1] == '-':
+                continue
+            output_file.write(entry)
+
+            output_file.write('\n')
+    return
+
+
+def merge_units_of_measurement(file_list, output_name):
+    unit_set = set()
+    with open(output_name, 'w') as output_file:
+        for input_file in file_list:
+            with open(input_file) as file1:
+                for line in file1:
+                    words = line.split()
+                    if len(words) >= 1:
+                        unit = words[1].lower()
+                        if unit not in unit_set:
+                            unit_set.add(unit)
+
+        for unit in unit_set:
+            output_file.write(unit)
+            output_file.write('\n')
+    return
+
+
 def main():
-    # measurement_storage = MeasurementStorage('/Users/Frank/working-directory/ner-measurement-mentions/')
-    # print(measurement_storage.length_of_measurement_list())
-    # print(measurement_storage.get_next_measurement_object())
-    # print(measurement_storage.get_next_measurement_object())
-    run_for_spectrum_all('/Users/Frank/working-directory/spectrum/spectrum-all.tsv')
+
+    # run_for_spectrum_all('/Users/Frank/working-directory/spectrum/spectrum-all.tsv')
+    run_extract_measurements('/Users/Frank/working-directory/units/nistsp330.txt', '/Users/Frank/working-directory/units/nistsp330-units.txt')
+    # merge_units_of_measurement(['/Users/Frank/working-directory/units/units-american-.txt', '/Users/Frank/working-directory/units/units.txt'], '/Users/Frank/working-directory/units/all-units.txt')
     return
 
 if __name__ == '__main__':
