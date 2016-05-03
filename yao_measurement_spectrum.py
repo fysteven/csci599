@@ -4,6 +4,7 @@ import json
 import csv
 from yaoutility import *
 from yaoner import extract_measurement
+import utility
 
 __author__ = 'Frank'
 
@@ -79,6 +80,66 @@ def run_for_spectrum_all(output_name):
     return
 
 
+def run_spectrum_for_different_mime_types(output_name, file_type_index, unit_list_index):
+    measurement_storage = MeasurementStorage('/Users/Frank/working-directory/ner-measurement-mentions/')
+    measurement_dict = dict()
+
+    # utility.create_parent_folder_if_needed_for_output_file(output_name)
+    with open(file_type_index) as file_type_index_file:
+        file_type_dictionary = dict()
+        for line in file_type_index_file:
+            words = line.split()
+            if len(words) == 2:
+                file_name = words[0]
+                file_type = words[1]
+                file_type_dictionary[file_name] = file_type
+
+        measure_set = MeasureDictionary(unit_list_index)
+        type_result_dictionary = dict()
+
+        while measurement_storage.has_next_measurement_object():
+            measurement_object = measurement_storage.get_next_measurement_object()
+            for entry in measurement_object[1]['measurement']:
+                measurement_mention = entry.split(' ')
+                number = measurement_mention[0]
+                unit = measurement_mention[1]
+                if not measure_set.contains(unit):
+                    continue
+                if is_number(number):
+                    number = float(number)
+                    if not measurement_object[0] in file_type_dictionary:
+                        print(measurement_object[0], 'not in there')
+                        continue
+                    file_type = file_type_dictionary[measurement_object[0]]
+                    if file_type not in measurement_dict:
+                        measurement_dict[file_type] = dict()
+                    inner_dict = measurement_dict[file_type]
+                    if unit not in inner_dict:
+                        inner_dict[unit.lower()] = Measurement(number, unit)
+                    else:
+                        measurement = inner_dict[unit.lower()]
+                        measurement.insert(number, unit)
+
+        for file_type in measurement_dict.keys():
+            inner_dict = measurement_dict[file_type]
+            output_name2 = output_name + file_type
+            utility.create_parent_folder_if_needed_for_output_file(output_name2)
+            with open(output_name2, 'w') as output_file:
+                csv_writer = csv.writer(output_file)
+                csv_writer.writerow(['unit', 'count', 'min', 'max', 'average'])
+                intermediate_result = list()
+                for entry in inner_dict.keys():
+                    measurement = inner_dict[entry]
+                    # intermediate_result.append(measurement.to_json())
+                    # intermediate_result.append('\n')
+                    intermediate_result.append([measurement.unit.encode('utf-8'), measurement.count, measurement.min, measurement.max,
+                                                measurement.average])
+                # json_data = json.dumps(measurement_dict)
+                # output_file.write(''.join(intermediate_result))
+                csv_writer.writerows(intermediate_result)
+    return
+
+
 def run_extract_measurements(input_file_name, output_file_name):
     with open(input_file_name) as input_file, open(output_file_name, 'w+') as output_file:
         string = input_file.read()
@@ -119,6 +180,19 @@ def merge_units_of_measurement(file_list, output_name):
             output_file.write(unit)
             output_file.write('\n')
     return
+
+
+class MeasureDictionary:
+    def __init__(self, unit_list_index):
+        self.measure_set = set()
+        with open(unit_list_index) as unit_list_index_file:
+            for line in unit_list_index_file:
+                words = line.split()
+                if len(words) > 0:
+                    self.measure_set.add(words[0].lower())
+
+    def contains(self, word):
+        return word.lower() in self.measure_set
 
 
 def filter_tsv(tsv_file, unit_list_index):
@@ -176,7 +250,10 @@ def main():
     # run_extract_measurements('/Users/Frank/working-directory/units/nistsp330.txt', '/Users/Frank/working-directory/units/nistsp330-units.txt')
     # merge_units_of_measurement(['/Users/Frank/working-directory/units/nistsp330-units.txt'], '/Users/Frank/working-directory/units/all-units-new.txt')
     # filter_tsv('/Users/Frank/working-directory/spectrum/spectrum-all.tsv', '/Users/Frank/working-directory/units/all-units.txt')
-    print_tsv('/Users/Frank/working-directory/spectrum/spectrum-all.tsv.filtered')
+    # print_tsv('/Users/Frank/working-directory/spectrum/spectrum-all.tsv.filtered')
+    run_spectrum_for_different_mime_types('/Users/Frank/working-directory/spectrum/output/',
+                                          '/Users/Frank/working-directory/fulldump/file-type-java.txt',
+                                          '/Users/Frank/working-directory/units/all-units.txt')
     return
 
 if __name__ == '__main__':
